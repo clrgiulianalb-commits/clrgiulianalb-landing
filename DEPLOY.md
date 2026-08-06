@@ -1,300 +1,162 @@
-# Deploy: Vercel de Giuliana + CI/CD + MCP
+# Deploy y acceso a Vercel
 
 Repo: `git@github.com:clrgiulianalb-commits/clrgiulianalb-landing.git`
 
----
-
-## 0. Lo primero, que no se negocia
-
-**No le pidas la contraseña de Vercel a Giuliana.** Ni por WhatsApp, ni "para
-configurarlo rápido", ni una sola vez.
-
-Hay dos caminos para que el deploy termine en la cuenta de ella. Los dos dejan
-la credencial en manos de su dueña.
-
-| | **Camino A — recomendado** | Camino B — solo si no queda otra |
-|---|---|---|
-| Qué hace ella | Te invita a su team de Vercel como Member | Crea el proyecto, genera el token y hace ella el login del OAuth |
-| Con qué cuenta trabajás vos | **La tuya** | La de ella |
-| Si algo sale mal | Te saca del team en 10 segundos | Tiene que revocar token y grant OAuth |
-| Riesgo | Bajo | Alto: el token actúa **como ella** en toda su cuenta |
-
-La documentación de Vercel es explícita sobre el MCP: conectarlo *"grants the AI
-system you're using the same access as your Vercel user account"*. Eso incluye
-las herramientas de compra (`buy_pro`, `buy_credits`, `buy_domain`), que hacen
-cargos reales y no reembolsables — a la tarjeta de ella.
-
-**Andá por el Camino A.** Pedile esto tal cual:
-
-> Entrá a vercel.com → tu team → Settings → Members → Invite, y agregá mi mail
-> `eric.vp.94@gmail.com` con rol Member. Con eso yo trabajo con mi propia cuenta
-> y no necesito nada tuyo.
-
-Lo que sigue está escrito para el Camino A. Donde el Camino B cambia algo, está
-marcado **[Camino B]**.
+Los pasos que tiene que hacer Giuliana están en **[PARA-GIULIANA.md](PARA-GIULIANA.md)**,
+escritos para alguien que no programa. Este documento es el lado técnico.
 
 ---
 
-## 1. Crear y vincular el proyecto
+## Cómo funciona el deploy
 
-El proyecto tiene que existir en Vercel **antes** del primer run de CI: sin
-proyecto no hay `PROJECT_ID`.
+Integración nativa de Git de Vercel. Ella importa el repo una vez desde el
+dashboard y a partir de ahí:
 
-```powershell
-npm i -g vercel@latest
-cd C:\project\clrgiulianalb-landing
-vercel login
-vercel link
-```
+- **push a `main`** → deploy a producción
+- **cualquier otra rama o PR** → deploy de preview con su propia URL
 
-En el prompt de `vercel link`:
+Sin tokens, sin secrets, sin GitHub Actions. Para un sitio estático sin base de
+datos es lo que menos piezas móviles tiene.
 
-1. `Set up "clrgiulianalb-landing"?` → **yes**
-2. `Which scope?` → **el team de Giuliana**, no tu cuenta personal.
-   Este paso es el que decide a qué cuenta va el deploy. Si te equivocás acá,
-   todo lo demás queda mal.
-3. `Link to existing project?` → **no** → nombre `clrgiulianalb-landing`
+**Por qué no GitHub Actions**, aunque estaba armado y funcionando: Eric tiene
+permiso `WRITE` sobre el repo, no `ADMIN`, y cargar secrets requiere admin. El
+pipeline le habría dado a Giuliana *más* trabajo (crear un token, buscar dos IDs,
+cargar tres valores) en vez de menos. Si en algún momento hace falta, está la
+sección "Volver a Actions" al final.
 
-Queda `.vercel/project.json` (ya está en `.gitignore`, no se commitea):
+### Qué NO tiene que estar en el repo
 
-```powershell
-type .vercel\project.json
-# { "orgId": "team_xxxxxxxx", "projectId": "prj_xxxxxxxx" }
-```
-
-**Hacé el primer deploy a mano, ahora:**
-
-```powershell
-vercel --prod
-```
-
-No es opcional. El primer deployment de un proyecto nuevo en Vercel siempre es
-de producción, aunque omitas `--prod`. Si el primero sale de un PR con el
-workflow, ese preview te pisa producción.
-
-**[Camino B]** Los pasos de esta sección los hace Giuliana en su máquina y te
-pasa **solo los dos IDs**. No son credenciales: son identificadores opacos que
-por sí solos no dan acceso.
+No agregues `vercel.json` con `git.deploymentEnabled: false`. Esa opción existe
+justamente para apagar los deploys automáticos por Git, que es lo que acá
+queremos que funcione. Se sacó del repo por eso.
 
 ---
 
-## 2. CI/CD con GitHub Actions
+## El único punto de atención: el plan
 
-El workflow ya está en [`.github/workflows/vercel.yml`](.github/workflows/vercel.yml).
-Hace typecheck, después preview en cada PR y producción en cada push a `main`.
+El plan Hobby de Vercel es gratis pero, según los términos de Vercel, es solo
+para uso personal y **no comercial**. Su documentación menciona explícitamente
+las landing de captación de clientes como uso comercial.
 
-### 2.1 Crear el token, acotado al proyecto
+En la práctica arranca funcionando igual. El riesgo real es un mail pidiendo
+migrar a Pro (~USD 20/mes) y, si no se hace, suspensión.
 
-1. `https://vercel.com/account/tokens`
-2. Nombre: `github-actions-clrgiulianalb`
-3. **Scope** → clickeá el team de Giuliana → seleccioná **`clrgiulianalb-landing`**.
-   Si elegís *All Projects* te crea un token de team: mal. Un token
-   project-scoped (prefijo `vcp_`) rechaza cualquier request a otro proyecto.
-4. Expiración: **90 días**. No pongas "no expiration".
-5. Copiá el valor ahora: se muestra una sola vez.
-
-**[Camino B]** El token lo crea **y lo pega ella**. Un secret de GitHub es
-write-only: una vez cargado no lo lee nadie, ni vos ni ella. Si te lo manda por
-chat, ya está comprometido: que lo revoque y genere otro.
-
-### 2.2 Cargar en GitHub
-
-`https://github.com/clrgiulianalb-commits/clrgiulianalb-landing/settings/secrets/actions`
-
-| Nombre | Pestaña | Valor |
-|---|---|---|
-| `VERCEL_TOKEN` | **Secrets** | el token de 2.1 |
-| `VERCEL_ORG_ID` | **Variables** | `orgId` de `project.json` |
-| `VERCEL_PROJECT_ID` | **Variables** | `projectId` de `project.json` |
-
-Ojo con espacios o saltos de línea al pegar el token: es la causa número uno de
-`The specified token is not valid`.
-
-**[Camino B] obligatorio además:** Settings → Environments → New environment →
-`production` → Required reviewers → agregá a Giuliana. Con eso un push a `main`
-no puede desplegar con el token de ella sin que alguien apruebe a mano.
-
-### 2.3 Variables de entorno del proyecto
-
-Si en algún momento el sitio necesita variables, cargalas en Vercel → proyecto →
-Settings → Environment Variables, marcando **Production** y **Preview**. Si
-faltan, `vercel pull` no las trae y el build de CI se cae.
-
-Hoy el sitio no usa ninguna.
+Si eso pasa, la salida barata es que el sitio es **100% estático**: todas las
+rutas se prerenderizan en build. Mudarlo a Cloudflare Pages o Netlify —cuyos
+planes gratuitos sí permiten uso comercial— es cambiar de proveedor, no rehacer
+la página. Habría que agregar `output: "export"` e `images: { unoptimized: true }`
+en `next.config.mjs`.
 
 ---
 
-## 3. Evitar el doble deploy
+## MCP de Vercel, acotado a este proyecto
 
-Si el repo queda conectado a Vercel por la integración de Git **y** además corre
-este workflow, cada push genera dos deployments: uno del webhook y otro de
-Actions. Doble build, y en `main` una carrera por quién aliasea el dominio.
-
-Ya está resuelto en [`vercel.json`](vercel.json):
-
-```json
-{ "git": { "deploymentEnabled": false } }
-```
-
-Eso desactiva **solo** los deploys automáticos disparados por Git. Los deploys
-por CLI siguen funcionando, que es justo lo que queremos.
-
-**No desconectes la integración desde el dashboard.** Con `deploymentEnabled:
-false` conservás los commit statuses en GitHub, está versionado en el repo (se
-revisa en un PR, no depende de que alguien se acuerde de un toggle) y se
-revierte con un commit de una línea. Desconectar es destructivo y, si el
-proyecto es de otra persona, rehacerlo implica volver a pedirle permisos.
-
-*Detalle:* Vercel necesita haber leído al menos un deployment que contenga el
-archivo para que la config quede activa. El primer push después de agregar
-`vercel.json` puede todavía disparar un deploy automático. De ahí en más, queda
-silenciado.
-
----
-
-## 4. MCP de Vercel, solo para este proyecto
+Esto es para Eric, y es independiente del deploy.
 
 ### Qué significa "solo para este proyecto"
 
-Son dos cosas distintas, no las mezcles:
+Son dos cosas distintas:
 
 - **La configuración** del server: con scope `local` (el default) queda en
   `C:\Users\erics\.claude.json`, bajo
   `projects → "C:\\project\\clrgiulianalb-landing" → mcpServers`. Solo se carga
-  cuando abrís Claude Code desde este directorio. **Esto es lo que pediste y se
+  al abrir Claude Code desde este directorio. **Esto es lo que se pidió y se
   cumple.**
 - **Las credenciales OAuth**: van a `C:\Users\erics\.claude\.credentials.json`,
-  bajo `mcpOAuth`, con clave `<nombreServidor>|<hash>`. Eso es **global a tu
-  usuario de Windows** y ningún scope lo cambia. Por eso abajo usamos un nombre
-  propio (`vercel-giuliana`) y la URL acotada al proyecto: así nunca colisiona
-  con un `vercel` tuyo personal.
+  bajo `mcpOAuth`, con clave `<nombreServidor>|<hash>`. Eso es **global al
+  usuario de Windows** y ningún scope lo cambia. Por eso abajo se usa un nombre
+  propio y una URL acotada al proyecto: así generan un token separado y nunca
+  colisionan con un `vercel` personal.
 
 `https://mcp.vercel.com` y `https://mcp.vercel.com/<org>/<project>` son recursos
-OAuth distintos, con tokens separados. Podés tener los dos en paralelo sin que
-se pisen.
+OAuth distintos, con tokens separados. Pueden convivir.
 
-### 4.1 Limpiar restos previos
+### Pasos
+
+Primero, que Giuliana invite a Eric a su cuenta de Vercel como Member (Paso 5 de
+PARA-GIULIANA.md). Con eso el MCP se autentica con la cuenta de Eric y ve el
+proyecto de ella, sin que nadie comparta contraseñas.
 
 ```powershell
 cd C:\project\clrgiulianalb-landing
+
+# 1. Limpiar restos previos, si los hubiera.
+#    Sin esto Claude Code reusa el refresh token viejo y nunca dispara el login.
 claude mcp logout vercel-giuliana     # ignorá el error si no existe
 claude mcp remove vercel-giuliana     # ignorá el error si no existe
-```
 
-Si no limpiás, Claude Code reusa el refresh token viejo y nunca dispara el login.
-
-### 4.2 Agregar el server
-
-Los slugs de la URL salen de la barra de direcciones del dashboard
-(`https://vercel.com/<org>/<project>`), **no** de los IDs de `project.json`.
-
-```powershell
-cd C:\project\clrgiulianalb-landing
+# 2. Agregar el server. Los slugs salen de la barra de direcciones del
+#    dashboard: https://vercel.com/<org>/<project>
 claude mcp add --transport http vercel-giuliana https://mcp.vercel.com/<org>/<project>
+
+# 3. Verificar dónde quedó
+claude mcp get vercel-giuliana
+claude mcp list                        # esperá "! Needs authentication"
+
+# 4. Autenticar
+claude mcp login vercel-giuliana
 ```
+
+Detalles que importan:
 
 - `--transport http` es obligatorio: Vercel MCP usa Streamable HTTP. Sin el flag,
   Claude Code lo toma como stdio y falla.
 - **No pongas `--scope`.** El default ya es `local`. `--scope project` crearía un
-  `.mcp.json` commiteable en el repo; `--scope user` lo activaría en todos tus
-  proyectos.
+  `.mcp.json` commiteable; `--scope user` lo activaría en todos los proyectos.
 - **No pongas `--header "Authorization: ..."`.** Si el server lo rechaza, Claude
   Code reporta conexión fallida en vez de caer al flujo OAuth.
 
-Verificá dónde quedó:
+### Verificación
 
 ```powershell
-claude mcp get vercel-giuliana
-claude mcp list          # esperá "! Needs authentication"
-```
-
-### 4.3 Autenticar
-
-**[Camino A]** — con tu cuenta, que ya está en el team de ella:
-
-```powershell
-claude mcp login vercel-giuliana
-```
-
-**[Camino B]** — forzar el login con la cuenta de Giuliana. Esto es lo delicado:
-la sesión de Vercel viaja por cookie, así que si tu navegador está logueado con
-tu cuenta, la pantalla de consentimiento autoriza **tu** cuenta sin avisarte. El
-consent screen no es un selector de cuenta.
-
-Con ella presente o en videollamada controlando la pantalla:
-
-1. ```powershell
-   claude mcp login vercel-giuliana --no-browser
-   ```
-   La terminal imprime una URL de `vercel.com/oauth/authorize`.
-2. Abrí esa URL en una **ventana de incógnito** (Ctrl+Shift+N). Incógnito no
-   comparte cookies, así que Vercel muestra el login. Tu sesión normal queda
-   intacta.
-3. **Giuliana escribe su mail y su contraseña, ella misma.** Vos te corrés del
-   teclado.
-4. Ella aprueba el consent screen.
-5. El navegador redirige a `http://localhost:PORT/callback?code=...` y muestra
-   un error de conexión. **Es lo esperado.** Copiá la URL completa de la barra y
-   pegala en el prompt de la terminal.
-6. Cerrá la ventana de incógnito.
-
-No metas `prompt=login` a mano en la URL: no es un parámetro soportado y romperías
-el `state`/PKCE. Y no uses el switcher de team de Vercel: cambia el *team* dentro
-de la *misma cuenta*, y el OAuth autoriza al **usuario**.
-
-### 4.4 Verificar con qué cuenta quedó
-
-Abrí Claude Code en este directorio y pedile que corra `list_projects` del MCP.
-Si aparecen tus proyectos personales en vez de los de ella, autorizaste con la
-cuenta equivocada: volvé a 4.1.
-
-**[Camino B] cuando termines el trabajo**, cerrá la puerta:
-
-```powershell
-claude mcp logout vercel-giuliana
-claude mcp remove vercel-giuliana
-```
-
-Y que ella revoque el grant desde su cuenta de Vercel.
-
----
-
-## 5. Verificación
-
-```powershell
-# El MCP existe acá...
 cd C:\project\clrgiulianalb-landing
 claude mcp list        # vercel-giuliana ... ✔ Connected
 
-# ...y NO existe en ningún otro lado. Esto prueba que el scope local funcionó.
 cd C:\Users\erics
-claude mcp list        # vercel-giuliana no aparece
+claude mcp list        # NO aparece: esto prueba que el scope local funcionó
 ```
 
-Después, el ciclo completo:
+Después, pedile a Claude que corra `list_projects` del MCP y confirme que ve
+`clrgiulianalb-landing`.
 
-1. `git checkout -b test/ci && git commit --allow-empty -m "test ci" && git push -u origin test/ci`
-2. Abrí un PR contra `main`.
-3. En Actions corren **Typecheck** y después **Deploy Preview**.
-4. Aparece un comentario con la URL del preview. Abrila.
-5. En Vercel → Deployments: **un solo** deployment `Preview`. Si ves dos, la
-   sección 3 no quedó aplicada.
-6. Mergeá. Corre **Deploy Production**, y queda un solo deployment `Production`.
-7. `git branch -d test/ci && git push origin --delete test/ci`
+### Si hubiera que usar la cuenta de ella directamente
 
-Checklist:
+No es necesario con la invitación al team, pero por si acaso: el OAuth de Vercel
+toma la sesión **por cookie del navegador**. Si tu navegador está logueado con tu
+cuenta, la pantalla de consentimiento autoriza **la tuya** sin avisarte — el
+consent screen no es un selector de cuenta.
 
-- [ ] `claude mcp list` conecta desde el proyecto y no aparece desde otro directorio
-- [ ] El MCP ve los proyectos de la cuenta correcta
-- [ ] No existe `.mcp.json` en el repo
-- [ ] `VERCEL_TOKEN` como Secret; `VERCEL_ORG_ID` y `VERCEL_PROJECT_ID` como Variables
-- [ ] El token es project-scoped (`vcp_`) y tiene vencimiento
-- [ ] Un PR = un preview. Un merge a main = una producción
-- [ ] Vos nunca supiste la contraseña de Giuliana
+La forma correcta, con ella presente:
+
+1. `claude mcp login vercel-giuliana --no-browser` → imprime una URL.
+2. Abrir esa URL en una **ventana de incógnito** (Ctrl+Shift+N). Sin cookies
+   compartidas, Vercel muestra el login.
+3. **Ella escribe su mail y contraseña, ella misma.**
+4. Aprueba el consentimiento.
+5. El navegador redirige a `http://localhost:PORT/callback?code=...` y muestra un
+   error de conexión: **es lo esperado**. Copiar la URL completa de la barra y
+   pegarla en el prompt de la terminal.
+6. Cerrar el incógnito.
+
+No metas `prompt=login` a mano en la URL: no es un parámetro soportado y romperías
+el `state`/PKCE. Y el switcher de team de Vercel no sirve: cambia el *team* dentro
+de la *misma cuenta*, y el OAuth autoriza al **usuario**.
+
+Al terminar: `claude mcp logout vercel-giuliana && claude mcp remove vercel-giuliana`,
+y que ella revoque el grant desde su cuenta.
 
 ---
 
-## 6. Problemas frecuentes
+## Problemas frecuentes
+
+### Deploy
+
+| Síntoma | Causa | Solución |
+|---|---|---|
+| El repo no aparece al importar en Vercel | La GitHub App no tiene acceso al repo privado | **Adjust GitHub App Permissions** y darle acceso |
+| Push a main no dispara nada | El repo no quedó conectado, o alguien agregó `vercel.json` con `deploymentEnabled: false` | Revisar Settings → Git del proyecto, y que no exista ese archivo |
+| Build falla por versión de Node | Vercel usa una versión distinta a la local | Project → Settings → Node.js Version → 22. Next 16 requiere ≥ 20.9 |
+| Dos deployments por commit | Se agregó Actions además de la integración nativa | Elegir uno de los dos |
 
 ### MCP
 
@@ -302,31 +164,29 @@ Checklist:
 |---|---|---|
 | No aparece en `claude mcp list` | Corriste `claude` desde otro directorio | El scope local está atado a la raíz del repo |
 | `! Needs authentication` | Falta el login o murió el refresh token | `claude mcp login vercel-giuliana`, o `/mcp` → Re-authenticate |
-| `✘ Failed to connect` | Slug mal escrito en la URL | `claude mcp get` y compará con la barra del dashboard |
+| `✘ Failed to connect` | Slug mal escrito en la URL | `claude mcp get` y comparar con la barra del dashboard |
 | El login no abre nada y conecta al toque | Reusó el token de la cuenta anterior | `claude mcp logout` **y** revocar el grant en Vercel |
-| Ve **tus** proyectos, no los de ella | Autorizaste con la cookie de tu navegador | 4.1 + 4.3 completos: logout, `--no-browser`, incógnito |
-| Nada pasa tras aprobar en el navegador | Falló el redirect a localhost | Copiá la URL completa del callback y pegala en la terminal |
-
-### CI/CD
-
-| Síntoma | Causa | Solución |
-|---|---|---|
-| `The specified token is not valid` | Token vencido, mal copiado o de otro proyecto | Regenerar; revisar espacios al pegar |
-| `Error: Project not found` | `VERCEL_PROJECT_ID` incorrecto | Comparar con el dashboard. Si están como Secrets, los logs muestran `***`: pasalos a Variables |
-| `You defined "VERCEL_ORG_ID" but you forgot...` | Falta uno de los dos | El CLI exige los dos o ninguno |
-| `no prebuilt output found in ".vercel/output"` | `deploy --prebuilt` sin `vercel build` previo | Los tres comandos van en el **mismo job**: los jobs no comparten disco |
-| **Dos deployments por commit** | Integración de Git activa + Actions | Sección 3 |
-| Producción construida con variables de preview | `--prod` solo en `deploy` | Va en `build` **y** en `deploy` |
-| Typecheck falla en CI pero anda local | `next-env.d.ts` está en `.gitignore` | Ya resuelto: `npm run typecheck` corre `next typegen` primero |
-| El workflow no corre nunca | Ruta o YAML inválido | Tiene que ser `.github/workflows/vercel.yml` |
-| No podés cargar secrets | No sos Admin del repo | Que los cargue Giuliana |
+| Ve los proyectos equivocados | Se autorizó con la cookie del navegador | Logout, `--no-browser`, incógnito |
 
 ---
 
-## 7. Higiene
+## Volver a Actions, si algún día hace falta
 
-1. Poné un recordatorio para rotar `VERCEL_TOKEN` antes de los 90 días.
-2. Giuliana tiene que saber dónde está el botón de revocar
-   (`vercel.com/account/tokens`) **antes** de que haga falta.
-3. No existe OIDC federado para autenticar deploys a Vercel: solo token
-   estático. Scope acotado y rotación son la única defensa real.
+Tiene sentido solo si se quiere que algo (typecheck, tests) frene el deploy
+cuando falla. Requiere permiso `ADMIN` sobre el repo para cargar secrets.
+
+Resumen de lo que haría falta:
+
+1. Token de Vercel **project-scoped** (`vercel.com/account/tokens`, scope →
+   proyecto, no *All Projects*), con vencimiento.
+2. En GitHub: `VERCEL_TOKEN` como **Secret**; `VERCEL_ORG_ID` y
+   `VERCEL_PROJECT_ID` como **Variables** (no Secrets: los secrets se enmascaran
+   en los logs y hacen indepurable un "Project not found"). Los IDs salen de
+   `.vercel/project.json` después de `vercel link`.
+3. Workflow con `vercel pull` → `vercel build` → `vercel deploy --prebuilt`, los
+   tres en el **mismo job** (los jobs no comparten disco). `--prod` va en `build`
+   **y** en `deploy`: si va solo en `deploy`, se construye con variables de
+   preview y se publica eso a producción.
+4. `vercel.json` con `git.deploymentEnabled: false` para no deployar dos veces.
+
+El pipeline completo está en el historial: `git show 0c403a7 -- .github/workflows/vercel.yml`

@@ -26,13 +26,15 @@ npm run typecheck    # next typegen && tsc --noEmit
 
 ## Deploy
 
-Todo el procedimiento —vincular el proyecto a la cuenta de Vercel de Giuliana,
-CI/CD con GitHub Actions y el MCP de Vercel acotado a este proyecto— está en
-**[DEPLOY.md](DEPLOY.md)**.
+El sitio se publica desde la cuenta de Vercel de Giuliana, con la integración
+nativa de Git: **push a `main` → producción**, cualquier otra rama → preview.
+Sin tokens ni secrets.
 
-El pipeline ya está escrito: [`.github/workflows/vercel.yml`](.github/workflows/vercel.yml)
-hace typecheck, preview en cada PR y producción en cada push a `main`. Falta
-cargar tres valores en GitHub, explicados en DEPLOY.md.
+- **[PARA-GIULIANA.md](PARA-GIULIANA.md)** — los pasos que hace ella, una sola
+  vez, escritos para alguien que no programa.
+- **[DEPLOY.md](DEPLOY.md)** — el lado técnico: cómo funciona, el MCP de Vercel
+  acotado a este proyecto, y qué haría falta para volver a un pipeline de
+  GitHub Actions.
 
 ---
 
