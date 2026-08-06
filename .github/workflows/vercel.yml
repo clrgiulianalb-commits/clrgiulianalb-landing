@@ -1,0 +1,111 @@
+name: Vercel CI/CD
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+  push:
+    branches: [main]
+
+concurrency:
+  group: vercel-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # Los IDs van como Variables (no Secrets) a propósito: los secrets se
+  # enmascaran como *** en los logs y eso hace indepurable un "Project not
+  # found". No son credenciales.
+  VERCEL_ORG_ID: ${{ vars.VERCEL_ORG_ID }}
+  VERCEL_PROJECT_ID: ${{ vars.VERCEL_PROJECT_ID }}
+  # Como variable de entorno y no como --token=: no queda expuesto en la
+  # lista de procesos del runner.
+  VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+
+jobs:
+  quality:
+    name: Typecheck
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      # `npm run typecheck` corre `next typegen` primero: next-env.d.ts está
+      # en .gitignore, así que en el runner no existe hasta generarlo.
+      - run: npm run typecheck
+
+  deploy-preview:
+    name: Deploy Preview
+    # GitHub no expone secrets a PRs desde forks: sin este guard el job
+    # fallaría por token ausente en vez de saltearse.
+    if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+    needs: quality
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Instalar Vercel CLI
+        run: npm install --global vercel@latest
+
+      - name: Traer el entorno de preview
+        run: vercel pull --yes --environment=preview --git-branch=${{ github.head_ref }}
+
+      # pull, build y deploy van en el MISMO job: los jobs no comparten disco.
+      - name: Construir
+        run: vercel build
+
+      - name: Publicar
+        id: deploy
+        run: |
+          url="$(vercel deploy --prebuilt --archive=tgz)"
+          echo "url=$url" >> "$GITHUB_OUTPUT"
+
+      - name: Comentar la URL en el PR
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PREVIEW_URL: ${{ steps.deploy.outputs.url }}
+        run: |
+          gh pr comment "${{ github.event.pull_request.number }}" \
+            --body "Preview de este PR: $PREVIEW_URL"
+
+  deploy-production:
+    name: Deploy Production
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: quality
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+      url: ${{ steps.deploy.outputs.url }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Instalar Vercel CLI
+        run: npm install --global vercel@latest
+
+      - name: Traer el entorno de producción
+        run: vercel pull --yes --environment=production
+
+      # --prod tiene que ir TAMBIÉN en build: si va solo en deploy, se
+      # construye con las variables de preview y se publica eso a producción.
+      - name: Construir
+        run: vercel build --prod
+
+      - name: Publicar
+        id: deploy
+        run: |
+          url="$(vercel deploy --prebuilt --prod --archive=tgz)"
+          echo "url=$url" >> "$GITHUB_OUTPUT"
