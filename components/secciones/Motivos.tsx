@@ -4,9 +4,9 @@ export function Motivos() {
   return (
     <section className="seccion" id="para-quien">
       <div className="contenedor">
-        <div className="rotulo aparece">
-          <span className="rotulo__n">(01)</span>
-          <h2 className="rotulo__t">Para quién es este espacio</h2>
+        <div className="rotulo rotulo--apilado aparece">
+          <h2 className="rotulo__t">¿Para quién es este espacio?</h2>
+          <p className="rotulo__s">Para quienes estén atravesando…</p>
         </div>
 
         <ul className="motivos">
