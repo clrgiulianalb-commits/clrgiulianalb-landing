@@ -13,11 +13,9 @@ export function Pie() {
           </p>
         </div>
 
-        <nav className="pie__enlaces" aria-label="Contacto y redes">
-          <a href={contacto.whatsapp.href} target="_blank" rel="noopener noreferrer">
-            WhatsApp {contacto.telefonoVisible}
-          </a>
-
+        {/* Sin WhatsApp acá: el contacto ya está en el CTA del cierre y en el
+            botón flotante. Repetir el número al pie era ruido. */}
+        <div className="pie__enlaces">
           {contacto.instagram && (
             <a
               href={`https://instagram.com/${contacto.instagram}`}
@@ -31,7 +29,7 @@ export function Pie() {
           {contacto.email && <a href={`mailto:${contacto.email}`}>{contacto.email}</a>}
 
           <span>© {anio}</span>
-        </nav>
+        </div>
       </div>
     </footer>
   );

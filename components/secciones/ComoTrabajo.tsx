@@ -6,7 +6,7 @@ export function ComoTrabajo() {
       <div className="contenedor">
         <div className="rotulo aparece">
           <span className="rotulo__n">(03)</span>
-          <h2 className="rotulo__t">Cómo empezamos</h2>
+          <h2 className="rotulo__t">¿Cómo empezaríamos?</h2>
         </div>
 
         <ol className="pasos">

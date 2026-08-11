@@ -97,10 +97,6 @@ export const puente = {
   apoyo: "No hace falta que tengas claro qué te pasa para empezar a hablarlo.",
 } as const;
 
-export const cierreFrase = {
-  destacada: "Entenderte también es una forma de cuidarte.",
-} as const;
-
 // ---------------------------------------------------------------------------
 // Para quién es este espacio
 // ---------------------------------------------------------------------------
@@ -164,7 +160,7 @@ export const pasos = [
       "Buscamos un día y un horario que te sirvan. Nos vemos por videollamada, desde donde te sientas cómoda o cómodo.",
   },
   {
-    titulo: "Empezamos a mirar juntas lo que te pasa",
+    titulo: "Empezamos a revisar en conjunto lo que te pasa",
     detalle:
       "Vamos al ritmo que necesites. No hay respuestas correctas ni un guion: el trabajo es que puedas escucharte y encontrar tus propios recursos.",
   },
@@ -181,7 +177,7 @@ export const sobreMi = {
     "Me interesa especialmente cómo construimos la mirada que tenemos sobre nosotros mismos. Esa forma de vernos se arma a lo largo de nuestro desarrollo, sobre todo en los primeros años, a través de las miradas y valoraciones de quienes nos cuidaron. Muchas veces seguimos mirándonos desde esas primeras ideas aunque hoy no nos representen del todo.",
     "En counseling el trabajo no es cambiar quién sos, sino poder revisar cómo te estás viendo hoy. Porque la forma en la que te percibís también puede transformarse.",
   ],
-  destacada: "La forma en la que te percibís también puede transformarse.",
+  destacada: "Entenderte, también es cuidarte.",
   /**
    * PENDIENTE: formación, título e institución.
    * Ej.: { titulo: "Consultora Psicológica", institucion: "Holos San Isidro", anio: "2021" }
@@ -264,7 +260,7 @@ export const faq = [
       "De lo que vos quieras traer. No hay temas obligatorios ni un orden establecido. Si un día no sabés por dónde arrancar, empezamos por ahí.",
   },
   {
-    pregunta: "¿Lo que hablamos queda entre nosotras?",
+    pregunta: "¿Lo que hablamos queda en este espacio?",
     respuesta:
       "Sí. Todo lo que se conversa en los encuentros es confidencial.",
   },

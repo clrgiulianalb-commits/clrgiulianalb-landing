@@ -989,13 +989,6 @@ li {
   z-index: 1;
 }
 
-.cierre__frase {
-  font-size: clamp(1.75rem, 1.28rem + 2.1vw, 2.75rem);
-  color: var(--c-vino);
-  margin-bottom: 2.5rem;
-  text-wrap: balance;
-}
-
 .cierre__t {
   font-size: var(--fs-h2);
 }
