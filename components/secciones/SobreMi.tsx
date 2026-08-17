@@ -15,10 +15,10 @@ export function SobreMi() {
           <div className="sobre__media aparece">
             <Image
               className="sobre__logo"
-              src={identidad.logo.src}
-              width={identidad.logo.width}
-              height={identidad.logo.height}
-              alt={identidad.logo.alt}
+              src={identidad.foto.src}
+              width={identidad.foto.width}
+              height={identidad.foto.height}
+              alt={identidad.foto.alt}
               sizes="(min-width: 56rem) 22rem, 60vw"
             />
           </div>
