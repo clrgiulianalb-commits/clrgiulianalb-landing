@@ -37,10 +37,10 @@ export function Hero() {
           <CirculoAbierto />
           <Image
             className="retrato__foto"
-            src={identidad.foto.src}
-            width={identidad.foto.width}
-            height={identidad.foto.height}
-            alt={identidad.foto.alt}
+            src={identidad.logo.src}
+            width={identidad.logo.width}
+            height={identidad.logo.height}
+            alt={identidad.logo.alt}
             sizes="(min-width: 62rem) 24rem, 74vw"
             priority
           />
