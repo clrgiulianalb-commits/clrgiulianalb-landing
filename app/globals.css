@@ -695,20 +695,6 @@ li {
   font-variant-numeric: tabular-nums;
 }
 
-/* El filete vertical que enhebra los pasos. */
-.paso::after {
-  content: "";
-  position: absolute;
-  left: 1.05rem;
-  top: 2rem;
-  bottom: -2rem;
-  width: 1px;
-  background: var(--c-hairline);
-}
-
-.paso:last-child::after {
-  display: none;
-}
 
 .paso__t {
   font-size: var(--fs-h3);
@@ -726,14 +712,6 @@ li {
     gap: 2.5rem;
   }
 
-  .paso::after {
-    left: 2.75rem;
-    top: 0.6rem;
-    bottom: auto;
-    right: -2.5rem;
-    width: auto;
-    height: 1px;
-  }
 }
 
 /* --------------------------------------------------------------------------
