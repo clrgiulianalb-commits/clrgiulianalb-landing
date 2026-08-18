@@ -24,9 +24,9 @@ export const identidad = {
   ciudad: null as string | null,
   modalidad: "Modalidad virtual",
   foto: {
-    src: "/giuliana.jpg",
-    width: 524,
-    height: 950,
+    src: "/giuliana-sobre-mi.svg",
+    width: 180,
+    height: 270,
     alt: "Retrato de Giuliana López Bravo, consultora psicológica, sonriendo.",
   },
   logo: {
